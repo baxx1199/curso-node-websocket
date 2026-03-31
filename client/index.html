@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime chat</title>
+
+    <script type="module" defer>
+        import { io } from 'https://cdn.socket.io/4.3.2/socket.io.esm.min.js'
+
+        const socket = io()
+        
+        const form = document.getElementById('form')
+        const input = document.getElementById('messageIn')
+        const messages = document.getElementById('messagesLi')
+        
+        socket.on('chat message', (msg) => {
+            console.log(msg)
+            const item = `<li>${msg}</li>`
+            messages.insertAdjacentHTML('beforeend', item)
+        })
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault()
+
+            if(input.value) {
+                socket.emit('chat message', input.value)
+                console.log('se envio')
+                input.value = ''
+            }
+        })
+    </script>
+
+    <style>
+        *,*::before,*::after{
+            box-sizing: border-box;
+        }
+        :root{
+            color-scheme: light dark;
+        }
+        body{
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            display: grid;
+            place-content: center;
+            height: 100vh;
+            padding: 36px;
+            grid-template-rows: 1fr;
+        }
+        #chat {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            width: 350px;
+            height: 80vh;
+            position: relative;
+            padding: 1rem;
+        }
+        #messagesLi{
+            color: white;
+            list-style: none;
+            margin: 0;
+            padding:0 ;
+        }
+        #messagesLi > li{
+            padding: .5rem 1rem;
+        }
+        #messagesLi > li:nth-child(odd){
+            background-color: rgba(0, 153, 255, 0.619);
+        }
+
+        #form{
+            bottom: 0;
+            display: flex;
+            height: 45px;
+            left: 0;
+            padding: 4px;
+            position: absolute;
+            right: 0;
+        }
+        #messageIn{
+            border-radius: 99999px;
+            border: 1px solid #eee;
+            flex: 1;
+            margin: 4px;
+            padding: 0 8px;
+        }
+        #messageIn:focus{
+            outline: 0;
+        }
+        #form > button{
+            background: #09f;
+            color: #fff;
+            border: 0;
+            margin: 4px;
+            border-radius: 5px;  
+        }
+        #form > button:hover{
+            background: rgb(0, 115, 255);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bienvenido al chat</h1>
+    <section id="chat">
+        <ul id="messagesLi"></ul>
+        <form id="form">
+             <input type="text" name="message" id="messageIn" placeholder="Type a message" autocomplete="off">
+             <button type="submit">Enviar</button>
+        </form>
+    </section>
+</body>
+</html>
