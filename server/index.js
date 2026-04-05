@@ -8,7 +8,9 @@ const port = process.env.PORT ?? 12345
 
 const app = express()
 const server = createServer(app)
-const io = new Server(server)
+const io = new Server(server, {
+    connectionStateRecovery: {}
+})
 
 io.on('connection', (socket) => {
     console.log('A user has conected')
