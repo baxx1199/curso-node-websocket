@@ -7,17 +7,59 @@
 
     <script type="module" defer>
         import { io } from 'https://cdn.socket.io/4.3.2/socket.io.esm.min.js'
+        
+        const whoLabel = document.getElementById('who')
+        
+        const getUserName = async () => {
+            const username = JSON.parse(localStorage.getItem('user')) 
+            if(username) {
+                console.log(`User existed ${username.user}`)
+            }
+            whoLabel.textContent = username.username ?? ''
+            return username ?? { username: 'Anonymous', userID: '00000' }
+        }
 
-        const socket = io()
+        const socket = io({
+            auth : {
+                userCredential: await getUserName(),
+                serverOffset:0
+            }
+        })
         
         const form = document.getElementById('form')
         const input = document.getElementById('messageIn')
         const messages = document.getElementById('messagesLi')
+
+        const formUser = document.getElementById('usernameForm')
+        const userTxt = document.getElementById('userTxt')
+        const idUserTxt = document.getElementById('userIdTxt')
+        const btnAccept = document.getElementById('btnUser')
         
-        socket.on('chat message', (msg) => {
-            console.log(msg)
-            const item = `<li>${msg}</li>`
+
+        
+        
+        socket.on('chat message', (message) => {
+            console.log(message)
+            const { content, user, created_at, id } = message
+
+            const date = new Date(created_at)
+            const hour = date.toLocaleTimeString('es-CO', {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+
+            const color = getUserColor(user)
+            const myUser = socket.auth.userCredential.username
+            const isMe = user === myUser
+
+            const item = `<li style="background: ${color} !important; align-self: ${isMe ? 'flex-end' : 'flex-start'};  border-radius:${isMe ? '10px 10px 0px 10px' : '10px 10px 10px 0px'};">
+                <p>${content}</p>
+                <small>${user} ${hour}</small>
+                </li>`
             messages.insertAdjacentHTML('beforeend', item)
+            socket.auth.serverOffset = id
+
+            messages.scrollTop = messages.scrollHeight
         })
 
         form.addEventListener('submit', (e) => {
@@ -29,6 +71,41 @@
                 input.value = ''
             }
         })
+
+        /* Obetener usuario */
+
+        btnAccept.addEventListener('click', (e) => {
+            e.preventDefault()
+
+            console.log(userTxt.value + " " + idUserTxt.value)
+
+            if(userTxt.value && idUserTxt.value) {
+               localStorage.setItem('user', JSON.stringify({username:userTxt.value, userID:idUserTxt.value}))
+                console.log('credencial guardada')
+                whoLabel.textContent = userTxt.value ?? ''
+                userTxt.value = ''
+                idUserTxt.value = ''
+            }
+        })
+
+        const userColors = {}
+
+        function getUserColor(user) {
+            if (!userColors[user]) {
+                const h = Math.floor(Math.random() * 360)
+                userColors[user] = `hsl(${h}, 70%, 70%)`
+            }
+            if(user == 'Anonymous'){
+                userColors[user] = `hsl(0deg 0% 47.87%)`
+            }
+            return userColors[user]
+        }
+        function setPositionMsj(user, myUser) {
+            if (user != myUser) {
+                return 'right: 0'
+            }
+            return 'left: 0'
+        }
     </script>
 
     <style>
@@ -47,12 +124,21 @@
             padding: 36px;
             grid-template-rows: 1fr;
         }
+        h1{
+            margin-bottom: 1rem;
+        }
+        #who{
+            text-align: center;
+            width: 100%;
+            margin:0;
+            text-transform: capitalize;
+        }
         #chat {
             border: 1px solid #ccc;
             border-radius: 5px;
             overflow: hidden;
             width: 350px;
-            height: 80vh;
+            min-height: 60vh;
             position: relative;
             padding: 1rem;
         }
@@ -61,12 +147,35 @@
             list-style: none;
             margin: 0;
             padding:0 ;
+            display: flex;
+            flex-direction: column;
+            overflow: auto scroll;
+            height: 90%;
+            scroll-behavior: smooth;
         }
         #messagesLi > li{
             padding: .5rem 1rem;
+            position: relative;
+            margin: 4px 0;
+            word-wrap: break-word;
+            min-width: 70%;
         }
-        #messagesLi > li:nth-child(odd){
-            background-color: rgba(0, 153, 255, 0.619);
+        #messagesLi > li > small{
+            font-weight: bold;
+            font-size: 11px;
+            position: absolute;
+            right: 5px;
+            bottom: 5px;
+            background: #ffffff30;
+            padding: 0.2rem;
+            border-radius: 5px;
+        }
+        #messagesLi > li > p{
+            margin-top: 0;
+        }
+        #messagesLi > li{
+            border-radius: 5px;
+            background-color: rgba(104, 104, 104, 0.619);
         }
 
         #form{
@@ -99,10 +208,52 @@
             background: rgb(0, 115, 255);
             cursor: pointer;
         }
+/* seleccion de usuario */
+        .userSelect{
+            width: 350px;
+            margin-bottom: 2rem;
+        }
+        .userSelect > #usernameForm {
+            display: flex;
+            flex-direction: column;
+            padding: 0.6rem;
+            background: #212121;
+        }
+
+        #usernameForm > #userTxt, #userIdTxt{
+            border-radius: 5px;
+            border: 1px solid #b6b6b6;
+            flex: 1;
+            margin: 4px;
+            padding: 0 8px;
+        }
+        #userTxt:focus, #userIdTxt:focus{
+            outline: 0;
+        }
+        #usernameForm > button{
+            background: rgb(0, 255, 217);
+            color: #fff;
+            border: 0;
+            margin: 4px;
+            border-radius: 5px;  
+        }
+        #usernameForm > button:hover{
+            background: rgb(0, 255, 255);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>Bienvenido al chat</h1>
+    <h1 id="who"></h1>
+    <section class="userSelect">
+        <h2>¿Quien eres?</h2>
+        <form id="usernameForm">
+            <input type="text" name="username" placeholder="UserName" id="userTxt">
+            <input type="text" name="idUser" placeholder="ID user" id="userIdTxt">
+            <button class="btnUser"  id="btnUser">Aceptar</button>
+        </form>
+    </section>
     <section id="chat">
         <ul id="messagesLi"></ul>
         <form id="form">
